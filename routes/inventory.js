@@ -1,15 +1,15 @@
 import express from "express";
 import db from "../db/connection.js";
-import { ObjectID } from "mongodb";
+import { ObjectId } from "mongodb";
 
-const router = express.Router();
+const inventory  = express.Router();
 
 // Get items in the inventory
 // If no parameters, return the complete inventory
 // If start and end parameters, return items that are
 // available between those dates.
-router.get("/", async (req, res) => {
-  let collection = await db.colection("inventory");
+inventory.get("/", async (req, res) => {
+  let collection = await db.collection("inventory");
   let startDate = req.query['start'];
   let endDate = req.query['end'];
   let results = undefined;
@@ -23,7 +23,7 @@ router.get("/", async (req, res) => {
 
 // Add new inventory item
 // TODO: Make secure
-router.post("/", async(req, res) => {
+inventory.post("/", async(req, res) => {
   try {
     let newDocument = {
       name: req.body.name,
@@ -33,15 +33,19 @@ router.post("/", async(req, res) => {
     };
     let collection = await db.collection("inventory");
     let result = await collection.insertOne(newDocument);
+    console.log(`Created new inventory item ${result.insertedId}`);
     res.send(result).status(204);
   } catch (err) {
-    console.error(err);
+    console.error({
+      message: 'Error adding inventory', 
+      error: err
+    });
     res.status(500).send("Error adding inventory");
   }
 });
 
 // Update inventory item
-router.patch("/:id", async (req, res) => {
+inventory.patch("/:id", async (req, res) => {
   res.status(501).send("Cannot patch inventory at this time");
   try {
     // TODO:
@@ -53,3 +57,33 @@ router.patch("/:id", async (req, res) => {
     res.status(500).send(`Error updating inventory {req.params.id}`);
   }
 });
+
+// Delete inventory item
+inventory.delete("/:id", async (req, res) => {
+  try {
+    let id = req.params.id;
+    if (!id) {
+      res.status(400).send("ID required.");
+    } else {
+      let document = {
+        _id: new ObjectId(id) 
+      };
+      console.log(document);
+      let collection = await db.collection("inventory");
+      let result = await collection.deleteOne(document);
+      if (result.deletedCount === 0) {
+        res.status(404).send(`Cannot delete ${id}. Not found.`);
+        console.log(`failed to delete ${id}. Not found.`);
+      } else {
+        console.log(`deleted inventory item ${id}`);
+        res.send(result).status(204);
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(`Error deleting inventory {req.params.id}`);
+  }
+});
+
+
+export default inventory;
