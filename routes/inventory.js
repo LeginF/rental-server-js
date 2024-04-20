@@ -4,20 +4,17 @@ import { ObjectId } from "mongodb";
 
 const inventory  = express.Router();
 
-// Get items in the inventory
-// If no parameters, return the complete inventory
-// If start and end parameters, return items that are
-// available between those dates.
-inventory.get("/", async (req, res) => {
+export async function getAllInventory() {
+  console.log("getAllInventory");
   let collection = await db.collection("inventory");
-  let startDate = req.query['start'];
-  let endDate = req.query['end'];
   let results = undefined;
-  if (startDate && endDate) {
-    // TODO: retrieve items not reserved
-  } else {
-    results = await collection.find({}).toArray();
-  }
+  results = await collection.find({}).toArray();
+  return results;
+}
+
+// Get items in the inventory
+inventory.get("/", async (req, res) => {
+  let results = await getAllInventory();
   res.send(results).status(200);
 });
 
