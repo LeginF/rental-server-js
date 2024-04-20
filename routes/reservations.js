@@ -4,43 +4,76 @@ import { ObjectId } from "mongodb";
 
 const reservations = express.Router();
 
+export async function getReservations(startDate, endDate) {
+  let collection = await db.collection("reservations");
+  let results = undefined;
+  if (startDate && endDate) {
+    // either the reservation's start or end date
+    // to fall between the query's start and end dates
+    let filter = {
+      $or: [
+        {
+          startDate: { 
+            $gte: new Date(startDate),
+            $lte: new Date(endDate),
+          },
+        },
+        {
+          endDate: {
+            $lte: new Date(endDate),
+            $gte: new Date(startDate),
+          },
+        }
+      ]
+    }
+    results = await collection.find(filter).toArray();
+  } else {
+    results = await collection.find({}).toArray();
+  }
+  return results;
+}
+
 // Get items in the inventory
 // If no parameters, return the complete inventory
 // If start and end parameters, return items that are
 // available between those dates.
 reservations.get("/", async (req, res) => {
-  let collection = await db.collection("reservations");
-  let startDate = req.query['start'];
-  let endDate = req.query['end'];
-  let results = undefined;
-  if (startDate && endDate) {
-    // TODO: retrieve items not reserved
-  } else {
-    results = await collection.find({}).toArray();
+  try {
+    let startDate = req.query['start'];
+    let endDate = req.query['end'];
+    let results = await getReservations(startDate, endDate);
+    res.send(results).status(200);
+  } catch (err) {
+    console.error({
+      message: "Error getting reservations",
+      error: err,
+    });
+    res.send(err).status(500);
   }
-  res.send(results).status(200);
 });
 
 // Add new reservations.item
-// TODO: Make secure
+// TODO: Verify customer and reservation
 reservations.post("/", async(req, res) => {
   try {
     let newDocument = {
-      name: req.body.name,
-      description: req.body.description,
-      imageUrl: req.body.imageUrl,
-      count: req.body.count,
+      customerId: req.body.customerId,
+      startDate: new Date(req.body.startDate),
+      endDate: new Date(req.body.endDate),
+      items: req.body.items,
+      ccAuthorization: null,
+      cost: null,
     };
     let collection = await db.collection("reservations");
     let result = await collection.insertOne(newDocument);
-    console.log(`Created new reservations.item ${result.insertedId}`);
+    console.log(`Created new reservation ${result.insertedId}`);
     res.send(result).status(204);
   } catch (err) {
     console.error({
-      message: 'Error adding reservations.',
+      message: 'Error adding reservation.',
       error: err
     });
-    res.status(500).send("Error adding reservations.");
+    res.status(500).send("Error adding reservation.");
   }
 });
 
