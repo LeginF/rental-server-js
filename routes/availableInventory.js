@@ -9,21 +9,24 @@ availableInventory.get("/", async (req,res) => {
   try {
     const startDate = req.query['start'];
     const endDate = req.query['end'];
+    if (!startDate || !endDate) {
+      console.error('availableInventory request missing dates');
+      res.status(400).send('Missing start/end date(s)');
+      return;
+    }
     // get all inventory
-    let inventory = await getAllInventory();
-    // get reservations between dates
-    let reservations= await getReservations(startDate, endDate);
+    const  inventory = await getAllInventory(startDate, endDate);
+    // build an inventory map
     const map = new Map(
       inventory.map((item) => [
         item._id.toString(),
         item
       ]));
-    console.log('map');
-    console.log(map);
-    // subtract reservation items from inventory
+    // get reservations between dates
+    const reservations= await getReservations(startDate, endDate);
+    // subtract reserved items from inventory
     reservations.forEach((reservation) => {
       reservation.items.forEach((itemId) => {
-        console.log(`ItemId: ${itemId}`);
         let item = map.get(itemId);
         item.count--;
       });
