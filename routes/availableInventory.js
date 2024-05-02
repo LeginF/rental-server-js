@@ -9,6 +9,7 @@ availableInventory.get("/", async (req,res) => {
   try {
     const startDate = req.query['start'];
     const endDate = req.query['end'];
+    console.log(`get availableInventory ${startDate} ${endDate}`);
     if (!startDate || !endDate) {
       console.error('availableInventory request missing dates');
       res.status(400).send('Missing start/end date(s)');
@@ -32,7 +33,12 @@ availableInventory.get("/", async (req,res) => {
       });
     });
     // return inventory
-    res.send(inventory).status(200);
+    let retValue = {
+      inventory: inventory,
+      startDate: startDate,
+      endDate: endDate,
+    };
+    res.send(retValue).status(200);
   } catch (err) {
     console.log(`Error in availableInventory ${err}`);
     res.send(err).status(500);
